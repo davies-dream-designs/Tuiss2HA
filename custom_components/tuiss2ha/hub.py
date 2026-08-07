@@ -208,6 +208,13 @@ class TuissBlind:
 
         retry_count = 1
         while retry_count <= self._restart_attempts:
+            # Refresh on every attempt so we route through whichever proxy
+            # currently has the best path, not the one that first connected.
+            fresh = bluetooth.async_ble_device_from_address(
+                self.hub._hass, self.host, connectable=True
+            )
+            if fresh:
+                self._ble_device = fresh
             _LOGGER.debug(
                 "%s %s: Attempting Connection to blind. Retry count: %d of %d",
                 self.name,
@@ -256,7 +263,9 @@ class TuissBlind:
                 name=self.host,
                 use_services_cache=True,
                 max_attempts=self._restart_attempts,
-                ble_device_callback=lambda: device,
+                ble_device_callback=lambda: bluetooth.async_ble_device_from_address(
+                    self.hub._hass, self.host, connectable=True
+                ) or device,
             )
             self._client = client
             # send the maintain connection message
